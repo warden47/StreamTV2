@@ -43,8 +43,8 @@ const favList = $('favList'), adminPanel = $('adminPanel');
 const statusTextEl = $('statusText');
 const playerModal = $('playerModal'), videoPlayer = $('videoPlayer'), channelTitle = $('channelTitle');
 const playPauseBtn = $('playPauseBtn'), progressBar = $('progressBar');
-const progressFill = $('progressFill'), currentTimeSpan = $('currentTime');
-const durationSpan = $('duration'), volumeSlider = $('volumeSlider');
+const progressFill = $('progressFill'), progressThumb = $('progressThumb'), currentTimeSpan = $('currentTime');
+const durationSpan = $('duration'), volumeSlider = $('volumeSlider'), fullscreenBtn = $('fullscreenBtn');
 const closePlayerBtn = $('closePlayerBtn'), qualityBtn = $('qualityBtn');
 const usernameModal = $('usernameModal'), usernameInput = $('usernameInput');
 const setUsernameBtn = $('setUsernameBtn'), usernameError = $('usernameError');
@@ -173,7 +173,7 @@ async function loadUserData() {
     : 'Free user';
   renderFavorites();
   if (!data.username) showUsernameModal();
-  buildHomeRows(); // refresh home to reflect user state
+  buildHomeRows();
 }
 
 // ====================== Login / Logout ======================
@@ -282,7 +282,7 @@ async function loadChannels() {
 function createChannelCard(channel) {
   const card = document.createElement('div');
   card.className = 'channel-card glass';
-  const isFav = false; // updated later via async if user logged in
+  const isFav = false;
   card.innerHTML = `
     <div class="live-badge">LIVE</div>
     <div class="viewer-count">${Math.floor(Math.random()*800)+10}K</div>
@@ -299,7 +299,6 @@ function createChannelCard(channel) {
     e.stopPropagation();
     toggleFavorite(channel);
   });
-  // Update heart if user is logged in (async)
   if (userDoc) {
     userDoc.get().then(snap => {
       const favs = snap.data().favorites || [];
@@ -323,7 +322,6 @@ async function toggleFavorite(channel) {
   if (index > -1) favs.splice(index, 1);
   else favs.push(url);
   await userDoc.update({ favorites: favs });
-  // Update only cards with this URL
   document.querySelectorAll('.channel-card').forEach(card => {
     if (card.querySelector('.card-name')?.textContent === channel.displayName) {
       card.querySelector('.fav-btn').classList.toggle('liked', favs.includes(url));
@@ -339,6 +337,7 @@ function getChannelsByCategory(cat, src = allChannels) {
     return keys.some(k => g.includes(k));
   });
 }
+
 const CATEGORY_MAP = {
   'Sports': ['sports','sport'],
   'Movies': ['movies','movie','film'],
@@ -439,7 +438,7 @@ function startLimitTimer() {
     videoPlayer.pause();
     playerModal.classList.remove('active');
     limitModal.classList.add('active');
-  }, 180000); // 3 minutes
+  }, 180000);
 }
 closeLimitBtn.addEventListener('click', () => limitModal.classList.remove('active'));
 
@@ -465,6 +464,7 @@ function qualitySetup() {
     }
   };
 }
+
 function closePlayer() {
   playerModal.classList.remove('active');
   if (hls) { hls.destroy(); hls = null; }
@@ -483,7 +483,7 @@ function bindPlayerControls() {
   videoPlayer.ontimeupdate = () => {
     const pct = (videoPlayer.currentTime / videoPlayer.duration) * 100 || 0;
     progressFill.style.width = pct + '%';
-    progressThumb.style.left = pct + '%';
+    if (progressThumb) progressThumb.style.left = pct + '%';
     currentTimeSpan.textContent = formatTime(videoPlayer.currentTime);
   };
   videoPlayer.ondurationchange = () => { durationSpan.textContent = formatTime(videoPlayer.duration); };
@@ -503,11 +503,121 @@ function bindPlayerControls() {
     }
   };
 }
+
 function formatTime(sec) {
   if (isNaN(sec)) return '0:00';
   const m = Math.floor(sec / 60), s = Math.floor(sec % 60).toString().padStart(2, '0');
   return `${m}:${s}`;
 }
+
+// ====================== Search & Filters ======================
+function setupSearchFilters() {
+  const cats = Object.keys(CATEGORY_MAP);
+  const langs = [...new Set(allChannels.map(c => c.language).filter(l => l))];
+  
+  categoryPills.innerHTML = '';
+  cats.forEach(cat => {
+    const pill = document.createElement('button');
+    pill.className = 'pill';
+    pill.textContent = cat;
+    pill.addEventListener('click', () => {
+      document.querySelectorAll('#categoryPills .pill').forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+      activeCategory = cat;
+      currentPage = 1;
+      applyFilters();
+    });
+    categoryPills.appendChild(pill);
+  });
+  
+  languagePills.innerHTML = '';
+  langs.forEach(lang => {
+    const pill = document.createElement('button');
+    pill.className = 'pill';
+    pill.textContent = lang;
+    pill.addEventListener('click', () => {
+      document.querySelectorAll('#languagePills .pill').forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+      activeLanguage = lang;
+      currentPage = 1;
+      applyFilters();
+    });
+    languagePills.appendChild(pill);
+  });
+}
+
+function applyFilters() {
+  let filtered = allChannels;
+  
+  if (activeCategory) {
+    filtered = getChannelsByCategory(activeCategory, filtered);
+  }
+  
+  if (activeLanguage) {
+    filtered = filtered.filter(ch => ch.language === activeLanguage);
+  }
+  
+  const searchTerm = searchBox.value.toLowerCase();
+  if (searchTerm) {
+    filtered = filtered.filter(ch => 
+      ch.displayName.toLowerCase().includes(searchTerm) || 
+      (ch.groupTitle || '').toLowerCase().includes(searchTerm)
+    );
+  }
+  
+  if (kidsMode) {
+    filtered = filtered.filter(ch => 
+      (ch.groupTitle || '').toLowerCase().includes('kids')
+    );
+  }
+  
+  filteredChannels = filtered;
+  currentPage = 1;
+  renderSearchGrid();
+}
+
+function renderSearchGrid() {
+  channelGrid.innerHTML = '';
+  const start = (currentPage - 1) * pageSize;
+  const end = start + pageSize;
+  const pageChannels = filteredChannels.slice(start, end);
+  pageChannels.forEach(ch => channelGrid.appendChild(createChannelCard(ch)));
+  renderPagination();
+}
+
+function renderPagination() {
+  paginationDiv.innerHTML = '';
+  const totalPages = Math.ceil(filteredChannels.length / pageSize);
+  if (totalPages <= 1) return;
+  
+  const prevBtn = document.createElement('button');
+  prevBtn.textContent = '← Prev';
+  prevBtn.disabled = currentPage === 1;
+  prevBtn.addEventListener('click', () => {
+    if (currentPage > 1) {
+      currentPage--;
+      renderSearchGrid();
+    }
+  });
+  paginationDiv.appendChild(prevBtn);
+  
+  const pageInfo = document.createElement('span');
+  pageInfo.textContent = `Page ${currentPage} / ${totalPages}`;
+  paginationDiv.appendChild(pageInfo);
+  
+  const nextBtn = document.createElement('button');
+  nextBtn.textContent = 'Next →';
+  nextBtn.disabled = currentPage === totalPages;
+  nextBtn.addEventListener('click', () => {
+    if (currentPage < totalPages) {
+      currentPage++;
+      renderSearchGrid();
+    }
+  });
+  paginationDiv.appendChild(nextBtn);
+}
+
+searchBox.addEventListener('input', applyFilters);
 
 // ====================== Profile & Admin ======================
 async function updateProfile() {
@@ -522,6 +632,7 @@ async function updateProfile() {
   premiumStatus.textContent = prem ? `Premium until ${data.premiumExpiry.toDate().toLocaleDateString()}` : 'Free user';
   renderFavorites();
 }
+
 async function renderFavorites() {
   favList.innerHTML = '';
   if (!userDoc) return;
@@ -548,4 +659,34 @@ $('adminUsersBtn').addEventListener('click', async () => {
   adminModal.classList.add('active');
   const usersSnap = await db.collection('users').get();
   userListDiv.innerHTML = '';
-  usersSnap.forEach(doc =
+  usersSnap.forEach(doc => {
+    const data = doc.data();
+    const item = document.createElement('div');
+    item.className = 'user-item';
+    item.innerHTML = `
+      <span>${data.email} ${data.admin ? '(Admin)' : ''}</span>
+      <button onclick="toggleAdminStatus('${doc.id}', ${!data.admin})" class="scan-btn" style="padding:0.3rem 0.6rem;font-size:0.8rem;">
+        ${data.admin ? 'Remove Admin' : 'Make Admin'}
+      </button>
+    `;
+    userListDiv.appendChild(item);
+  });
+});
+
+closeAdminBtn.addEventListener('click', () => adminModal.classList.remove('active'));
+
+async function toggleAdminStatus(uid, makeAdmin) {
+  try {
+    await db.collection('users').doc(uid).update({ admin: makeAdmin });
+    $('adminUsersBtn').click();
+  } catch (e) {
+    alert('Error: ' + e.message);
+  }
+}
+
+// ====================== Initialize App ======================
+window.addEventListener('load', () => {
+  loadChannels();
+  const savedTheme = localStorage.getItem('streamtv_theme') || 'dark';
+  applyTheme(savedTheme);
+});
