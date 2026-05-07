@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+  <title>Stream TV - Login</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    .login-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .login-card {
+      background: rgba(255,255,255,0.15);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 30px;
+      padding: 3rem;
+      max-width: 450px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+    }
+    .login-logo {
+      width: 100px;
+      height: 100px;
+      margin: 0 auto 2rem;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3rem;
+    }
+    .login-title {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      color: white;
+    }
+    .login-subtitle {
+      font-size: 1rem;
+      color: rgba(255,255,255,0.7);
+      margin-bottom: 3rem;
+    }
+    .login-btn-container {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .login-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      padding: 1rem;
+      border: none;
+      border-radius: 15px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      color: white;
+    }
+    .login-btn-google {
+      background: linear-gradient(135deg, #4285F4, #34A853);
+      box-shadow: 0 4px 15px rgba(66, 133, 244, 0.4);
+    }
+    .login-btn-google:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 25px rgba(66, 133, 244, 0.6);
+    }
+    .login-btn-guest {
+      background: rgba(255,255,255,0.2);
+      border: 2px solid rgba(255,255,255,0.4);
+    }
+    .login-btn-guest:hover {
+      background: rgba(255,255,255,0.3);
+      border-color: rgba(255,255,255,0.6);
+    }
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin: 2rem 0;
+    }
+    .divider-line {
+      flex: 1;
+      height: 1px;
+      background: rgba(255,255,255,0.2);
+    }
+    .divider-text {
+      color: rgba(255,255,255,0.6);
+      font-size: 0.9rem;
+    }
+    .features {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      text-align: left;
+      margin-top: 2rem;
+      padding-top: 2rem;
+      border-top: 1px solid rgba(255,255,255,0.1);
+    }
+    .feature-item {
+      display: flex;
+      gap: 1rem;
+      align-items: flex-start;
+    }
+    .feature-icon {
+      font-size: 1.5rem;
+      color: #00e5ff;
+      min-width: 30px;
+    }
+    .feature-text {
+      color: rgba(255,255,255,0.8);
+      font-size: 0.95rem;
+    }
+    .error-msg {
+      background: rgba(255,76,76,0.2);
+      border: 1px solid rgba(255,76,76,0.5);
+      color: #ff6b6b;
+      padding: 1rem;
+      border-radius: 10px;
+      margin-bottom: 1.5rem;
+      display: none;
+    }
+    .loading {
+      display: none;
+      text-align: center;
+    }
+    .spinner {
+      border: 4px solid rgba(255,255,255,0.2);
+      border-top: 4px solid #00e5ff;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 1rem;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .theme-toggle {
+      position: absolute;
+      top: 2rem;
+      right: 2rem;
+    }
+    .theme-toggle-btn {
+      background: rgba(255,255,255,0.2);
+      border: none;
+      color: white;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      font-size: 1.5rem;
+      cursor: pointer;
+      transition: background 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .theme-toggle-btn:hover {
+      background: rgba(255,255,255,0.3);
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-gradient"></div>
+  
+  <div class="theme-toggle">
+    <button class="theme-toggle-btn" id="themeToggleLogin" title="Switch theme">
+      <i class="fas fa-moon"></i>
+    </button>
+  </div>
+
+  <div class="login-container">
+    <div class="login-card glass">
+      <div class="login-logo">
+        <i class="fas fa-play"></i>
+      </div>
+      <h1 class="login-title">Stream TV</h1>
+      <p class="login-subtitle">Watch TV Channels Worldwide</p>
+
+      <div class="error-msg" id="loginError"></div>
+
+      <div class="loading" id="loadingSpinner">
+        <div class="spinner"></div>
+        <p>Signing in...</p>
+      </div>
+
+      <div class="login-btn-container" id="loginButtons">
+        <button class="login-btn login-btn-google" id="googleSignInBtn">
+          <i class="fab fa-google"></i>
+          Sign in with Google
+        </button>
+        <button class="login-btn login-btn-guest" id="guestSignInBtn">
+          <i class="fas fa-user"></i>
+          Continue as Guest
+        </button>
+      </div>
+
+      <div class="divider">
+        <div class="divider-line"></div>
+        <span class="divider-text">Features</span>
+        <div class="divider-line"></div>
+      </div>
+
+      <div class="features">
+        <div class="feature-item">
+          <div class="feature-icon"><i class="fas fa-globe"></i></div>
+          <div class="feature-text"><strong>1000+ Channels</strong> from around the world</div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon"><i class="fas fa-hd"></i></div>
+          <div class="feature-text"><strong>Multiple Qualities</strong> Auto, HD, SD</div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon"><i class="fas fa-heart"></i></div>
+          <div class="feature-text"><strong>Save Favorites</strong> your loved channels</div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon"><i class="fas fa-history"></i></div>
+          <div class="feature-text"><strong>Watch History</strong> never lose your place</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase CDN -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <script src="login-script.js"></script>
+</body>
+</html>
