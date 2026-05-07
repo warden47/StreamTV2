@@ -2,141 +2,110 @@
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Stream TV - Login</title>
-  <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <style>
-    .login-container {
-      display: flex;
-      align-items: center;
-      justify-content: center;
+    :root {
+      --gradient-start: #0077cc;
+      --gradient-end: #10b981;
+      --text-primary: #ffffff;
+      --accent: #00e5ff;
+    }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    html, body {
+      font-family: -apple-system, 'Segoe UI', Roboto, system-ui, sans-serif;
+      background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+      color: var(--text-primary);
       min-height: 100vh;
-      padding: 20px;
-    }
-    .login-card {
-      background: rgba(255,255,255,0.15);
-      backdrop-filter: blur(20px);
-      border: 1px solid rgba(255,255,255,0.2);
-      border-radius: 30px;
-      padding: 3rem;
-      max-width: 450px;
-      width: 100%;
-      text-align: center;
-      box-shadow: 0 20px 50px rgba(0,0,0,0.3);
-    }
-    .login-logo {
-      width: 100px;
-      height: 100px;
-      margin: 0 auto 2rem;
-      border-radius: 50%;
-      background: rgba(255,255,255,0.2);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 3rem;
+      padding: 1rem;
     }
-    .login-title {
-      font-size: 2.5rem;
-      font-weight: 700;
-      margin-bottom: 0.5rem;
-      color: white;
+    .login-container {
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(20px);
+      border-radius: 20px;
+      padding: 3rem 2rem;
+      max-width: 400px;
+      width: 100%;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      text-align: center;
     }
-    .login-subtitle {
-      font-size: 1rem;
-      color: rgba(255,255,255,0.7);
-      margin-bottom: 3rem;
-    }
-    .login-btn-container {
-      display: flex;
-      flex-direction: column;
-      gap: 1.5rem;
+    .logo-section {
       margin-bottom: 2rem;
     }
-    .login-btn {
+    .logo-img {
+      height: 80px;
+      margin-bottom: 1rem;
+    }
+    .login-container h1 {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+      font-weight: 700;
+    }
+    .login-container p {
+      color: rgba(255, 255, 255, 0.7);
+      margin-bottom: 2rem;
+      font-size: 0.95rem;
+    }
+    .login-button {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 1rem;
-      padding: 1rem;
+      gap: 0.8rem;
+      width: 100%;
+      padding: 0.8rem 1.5rem;
+      background: var(--accent);
+      color: #000;
       border: none;
-      border-radius: 15px;
-      font-size: 1.1rem;
+      border-radius: 25px;
       font-weight: 600;
+      font-size: 1rem;
       cursor: pointer;
-      transition: all 0.3s;
+      transition: transform 0.2s, box-shadow 0.2s;
+      margin-bottom: 1rem;
+    }
+    .login-button:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 16px rgba(0, 229, 255, 0.4);
+    }
+    .login-button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .login-button i {
+      font-size: 1.2rem;
+    }
+    .error-message {
+      background: rgba(255, 68, 68, 0.9);
       color: white;
-    }
-    .login-btn-google {
-      background: linear-gradient(135deg, #4285F4, #34A853);
-      box-shadow: 0 4px 15px rgba(66, 133, 244, 0.4);
-    }
-    .login-btn-google:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 8px 25px rgba(66, 133, 244, 0.6);
-    }
-    .login-btn-guest {
-      background: rgba(255,255,255,0.2);
-      border: 2px solid rgba(255,255,255,0.4);
-    }
-    .login-btn-guest:hover {
-      background: rgba(255,255,255,0.3);
-      border-color: rgba(255,255,255,0.6);
-    }
-    .divider {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      margin: 2rem 0;
-    }
-    .divider-line {
-      flex: 1;
-      height: 1px;
-      background: rgba(255,255,255,0.2);
-    }
-    .divider-text {
-      color: rgba(255,255,255,0.6);
-      font-size: 0.9rem;
-    }
-    .features {
-      display: flex;
-      flex-direction: column;
-      gap: 1.5rem;
-      text-align: left;
-      margin-top: 2rem;
-      padding-top: 2rem;
-      border-top: 1px solid rgba(255,255,255,0.1);
-    }
-    .feature-item {
-      display: flex;
-      gap: 1rem;
-      align-items: flex-start;
-    }
-    .feature-icon {
-      font-size: 1.5rem;
-      color: #00e5ff;
-      min-width: 30px;
-    }
-    .feature-text {
-      color: rgba(255,255,255,0.8);
-      font-size: 0.95rem;
-    }
-    .error-msg {
-      background: rgba(255,76,76,0.2);
-      border: 1px solid rgba(255,76,76,0.5);
-      color: #ff6b6b;
       padding: 1rem;
       border-radius: 10px;
-      margin-bottom: 1.5rem;
+      margin-bottom: 1rem;
       display: none;
+      font-size: 0.9rem;
+    }
+    .error-message.show {
+      display: block;
     }
     .loading {
       display: none;
       text-align: center;
+      margin-bottom: 1rem;
+    }
+    .loading.show {
+      display: block;
     }
     .spinner {
-      border: 4px solid rgba(255,255,255,0.2);
-      border-top: 4px solid #00e5ff;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-top: 3px solid var(--accent);
       border-radius: 50%;
       width: 40px;
       height: 40px;
@@ -147,96 +116,207 @@
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
-    .theme-toggle {
-      position: absolute;
-      top: 2rem;
-      right: 2rem;
+    .divider {
+      color: rgba(255, 255, 255, 0.5);
+      margin: 1.5rem 0;
+      font-size: 0.9rem;
     }
-    .theme-toggle-btn {
-      background: rgba(255,255,255,0.2);
-      border: none;
-      color: white;
-      width: 50px;
-      height: 50px;
-      border-radius: 50%;
-      font-size: 1.5rem;
-      cursor: pointer;
-      transition: background 0.3s;
+    .guest-button {
       display: flex;
       align-items: center;
       justify-content: center;
+      gap: 0.8rem;
+      width: 100%;
+      padding: 0.8rem 1.5rem;
+      background: rgba(255, 255, 255, 0.15);
+      color: var(--text-primary);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 25px;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.2s;
     }
-    .theme-toggle-btn:hover {
-      background: rgba(255,255,255,0.3);
+    .guest-button:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.25);
+      border-color: rgba(255, 255, 255, 0.5);
+    }
+    .guest-button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .info-box {
+      background: rgba(0, 229, 255, 0.1);
+      border: 1px solid rgba(0, 229, 255, 0.3);
+      padding: 1rem;
+      border-radius: 10px;
+      margin-top: 1.5rem;
+      font-size: 0.85rem;
+      color: rgba(255, 255, 255, 0.8);
+    }
+    .info-box strong {
+      color: var(--accent);
     }
   </style>
 </head>
 <body>
-  <div class="bg-gradient"></div>
-  
-  <div class="theme-toggle">
-    <button class="theme-toggle-btn" id="themeToggleLogin" title="Switch theme">
-      <i class="fas fa-moon"></i>
-    </button>
-  </div>
-
   <div class="login-container">
-    <div class="login-card glass">
-      <div class="login-logo">
-        <i class="fas fa-play"></i>
-      </div>
-      <h1 class="login-title">Stream TV</h1>
-      <p class="login-subtitle">Watch TV Channels Worldwide</p>
+    <div class="logo-section">
+      <img src="logo.png" alt="Stream TV" class="logo-img" onerror="this.style.display='none'">
+      <h1>Stream TV</h1>
+      <p>Watch unlimited IPTV channels</p>
+    </div>
 
-      <div class="error-msg" id="loginError"></div>
+    <div class="loading" id="loadingSpinner">
+      <div class="spinner"></div>
+      <p>Redirecting to Google...</p>
+    </div>
 
-      <div class="loading" id="loadingSpinner">
-        <div class="spinner"></div>
-        <p>Signing in...</p>
-      </div>
+    <div class="error-message" id="errorMessage"></div>
 
-      <div class="login-btn-container" id="loginButtons">
-        <button class="login-btn login-btn-google" id="googleSignInBtn">
-          <i class="fab fa-google"></i>
-          Sign in with Google
-        </button>
-        <button class="login-btn login-btn-guest" id="guestSignInBtn">
-          <i class="fas fa-user"></i>
-          Continue as Guest
-        </button>
-      </div>
+    <button class="login-button" id="googleLoginBtn" onclick="loginWithGoogle()">
+      <i class="fab fa-google"></i>
+      Continue with Google
+    </button>
 
-      <div class="divider">
-        <div class="divider-line"></div>
-        <span class="divider-text">Features</span>
-        <div class="divider-line"></div>
-      </div>
+    <div class="divider">or</div>
 
-      <div class="features">
-        <div class="feature-item">
-          <div class="feature-icon"><i class="fas fa-globe"></i></div>
-          <div class="feature-text"><strong>1000+ Channels</strong> from around the world</div>
-        </div>
-        <div class="feature-item">
-          <div class="feature-icon"><i class="fas fa-hd"></i></div>
-          <div class="feature-text"><strong>Multiple Qualities</strong> Auto, HD, SD</div>
-        </div>
-        <div class="feature-item">
-          <div class="feature-icon"><i class="fas fa-heart"></i></div>
-          <div class="feature-text"><strong>Save Favorites</strong> your loved channels</div>
-        </div>
-        <div class="feature-item">
-          <div class="feature-icon"><i class="fas fa-history"></i></div>
-          <div class="feature-text"><strong>Watch History</strong> never lose your place</div>
-        </div>
-      </div>
+    <button class="guest-button" id="guestBtn" onclick="continueAsGuest()">
+      <i class="fas fa-user-secret"></i>
+      Continue as Guest
+    </button>
+
+    <div class="info-box">
+      <strong>Guest Mode:</strong> Browse and watch with a 3-minute limit per stream. Login to enjoy unlimited access!
     </div>
   </div>
 
-  <!-- Firebase CDN -->
+  <!-- Firebase Scripts -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-  <script src="login-script.js"></script>
+
+  <script>
+    // Firebase Configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyAu3yLOB6UKRlZ8gnWU7VM9Ts1pGMJzslY",
+      authDomain: "stream-tv-50161.firebaseapp.com",
+      projectId: "stream-tv-50161",
+      storageBucket: "stream-tv-50161.firebasestorage.app",
+      messagingSenderId: "415515113346",
+      appId: "1:415515113346:web:e7c5800b3c65f8fdd8c19b",
+      measurementId: "G-GHE4PRX2YR"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    const errorMsg = document.getElementById('errorMessage');
+    const loadingSpinner = document.getElementById('loadingSpinner');
+    const googleLoginBtn = document.getElementById('googleLoginBtn');
+    const guestBtn = document.getElementById('guestBtn');
+
+    // Check if already logged in
+    auth.onAuthStateChanged((user) => {
+      if (user) {
+        localStorage.setItem('userId', user.uid);
+        localStorage.setItem('userEmail', user.email);
+        redirectToApp();
+      }
+    });
+
+    // Google Login Function
+    async function loginWithGoogle() {
+      try {
+        errorMsg.classList.remove('show');
+        loadingSpinner.classList.add('show');
+        googleLoginBtn.disabled = true;
+        guestBtn.disabled = true;
+
+        const provider = new firebase.auth.GoogleAuthProvider();
+        provider.addScope('profile');
+        provider.addScope('email');
+
+        const result = await auth.signInWithPopup(provider);
+        
+        // Create/Update user document
+        const userRef = db.collection('users').doc(result.user.uid);
+        const userSnap = await userRef.get();
+        
+        if (!userSnap.exists) {
+          await userRef.set({
+            email: result.user.email,
+            displayName: result.user.displayName || result.user.email.split('@')[0],
+            photoURL: result.user.photoURL || '',
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            isPremium: false,
+            premiumExpiry: null,
+            favorites: [],
+            recentlyViewed: [],
+            admin: false,
+            username: '',
+            theme: 'dark',
+            kidsMode: false,
+          });
+        }
+
+        localStorage.setItem('userId', result.user.uid);
+        localStorage.setItem('userEmail', result.user.email);
+        redirectToApp();
+      } catch (error) {
+        loadingSpinner.classList.remove('show');
+        googleLoginBtn.disabled = false;
+        guestBtn.disabled = false;
+        showError(error);
+      }
+    }
+
+    // Guest Mode
+    function continueAsGuest() {
+      localStorage.setItem('guestMode', 'true');
+      localStorage.removeItem('userId');
+      redirectToApp();
+    }
+
+    // Show Error Message
+    function showError(error) {
+      let message = 'Login failed. Please try again.';
+      
+      switch (error.code) {
+        case 'auth/popup-blocked':
+          message = 'Popup was blocked. Please allow popups and try again.';
+          break;
+        case 'auth/popup-closed-by-user':
+          message = 'Login popup was closed. Please try again.';
+          break;
+        case 'auth/network-request-failed':
+          message = 'Network error. Check your connection and try again.';
+          break;
+        case 'auth/operation-not-allowed':
+          message = 'Google Sign-In is not enabled. Check Firebase console.';
+          break;
+        case 'auth/invalid-api-key':
+          message = 'Invalid Firebase configuration. Contact support.';
+          break;
+        default:
+          message = `Error: ${error.message}`;
+      }
+      
+      errorMsg.textContent = message;
+      errorMsg.classList.add('show');
+      console.error('Login Error:', error);
+    }
+
+    // Redirect to Main App
+    function redirectToApp() {
+      setTimeout(() => {
+        window.location.href = 'index.html';
+      }, 800);
+    }
+
+    console.log('✅ Firebase Login Page Initialized');
+  </script>
 </body>
 </html>
