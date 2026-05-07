@@ -40,6 +40,7 @@ const themeToggle = $('themeToggle'), darkThemeToggle = $('darkThemeToggle');
 const kidsModeToggle = $('kidsModeToggle');
 const profileName = $('profileName'), profileEmail = $('profileEmail'), premiumStatus = $('premiumStatus');
 const favList = $('favList'), adminPanel = $('adminPanel');
+const statusTextEl = $('statusText');
 const playerModal = $('playerModal'), videoPlayer = $('videoPlayer'), channelTitle = $('channelTitle');
 const playPauseBtn = $('playPauseBtn'), progressBar = $('progressBar');
 const progressFill = $('progressFill'), currentTimeSpan = $('currentTime');
@@ -53,8 +54,63 @@ const adminModal = $('adminModal'), userListDiv = $('userList'), closeAdminBtn =
 let hls = null, currentQualityIndex = -1;
 let limitTimer = null, limitStart = 0, currentChannel = null;
 
+// ====================== Helper: Parse M3U ======================
+function parseM3U(text) {
+  const lines = text.split('\n');
+  const channels = [];
+  let current = null;
+  for (const line of lines) {
+    const t = line.trim();
+    if (t.startsWith('#EXTINF')) {
+      if (current) channels.push(current);
+      const info = t.substring(8);
+      const ci = info.indexOf(',');
+      let meta = '', name = '';
+      if (ci >= 0) {
+        meta = info.substring(0, ci).trim();
+        name = info.substring(ci + 1).trim();
+      } else {
+        name = info.trim();
+      }
+      const ga = (attr) => {
+        const m = meta.match(new RegExp(`${attr}="([^"]*)"`));
+        return m ? m[1] : '';
+      };
+      current = {
+        displayName: name,
+        tvgId: ga('tvg-id'),
+        tvgName: ga('tvg-name'),
+        tvgLogo: ga('tvg-logo'),
+        groupTitle: ga('group-title'),
+        language: extractLanguage(ga('tvg-language') || ga('group-title') || ''),
+      };
+    } else if (t && !t.startsWith('#') && current) {
+      current.url = t;
+      channels.push(current);
+      current = null;
+    }
+  }
+  if (current) channels.push(current);
+  return channels;
+}
+
+function extractLanguage(raw) {
+  const langMap = {
+    english: 'English', french: 'French', spanish: 'Spanish',
+    german: 'German', italian: 'Italian', portuguese: 'Portuguese',
+    russian: 'Russian', arabic: 'Arabic', hindi: 'Hindi',
+    turkish: 'Turkish', dutch: 'Dutch', polish: 'Polish',
+    indonesian: 'Indonesian', thai: 'Thai', vietnamese: 'Vietnamese',
+  };
+  const rLow = raw.toLowerCase();
+  for (const [key, val] of Object.entries(langMap)) {
+    if (rLow.includes(key)) return val;
+  }
+  return '';
+}
+
 // ====================== Auth ======================
-auth.onAuthStateChanged(async user => {
+auth.onAuthStateChanged(async (user) => {
   if (user) {
     currentUser = user;
     loginBtn.style.display = 'none';
@@ -62,7 +118,6 @@ auth.onAuthStateChanged(async user => {
     const docRef = db.collection('users').doc(user.uid);
     const docSnap = await docRef.get();
     if (!docSnap.exists) {
-      // New user
       await docRef.set({
         email: user.email,
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -73,7 +128,7 @@ auth.onAuthStateChanged(async user => {
         admin: (user.email === ADMIN_EMAIL),
         username: '',
         theme: 'dark',
-        kidsMode: false
+        kidsMode: false,
       });
     }
     userDoc = docRef;
@@ -104,29 +159,26 @@ async function loadUserData() {
   isAdmin = data.admin || false;
   isPremium = data.isPremium && data.premiumExpiry?.toDate() > new Date();
   kidsMode = data.kidsMode || false;
-  // Apply theme
   const savedTheme = data.theme || 'dark';
   applyTheme(savedTheme);
   darkThemeToggle.checked = (savedTheme === 'dark');
   kidsModeToggle.checked = kidsMode;
   applyKidsMode(kidsMode);
-  // Show admin panel
   if (isAdmin) adminPanel.style.display = 'block';
   else adminPanel.style.display = 'none';
-  // Update profile UI
   profileName.textContent = data.username || 'Set username';
   profileEmail.textContent = currentUser.email;
-  premiumStatus.textContent = isPremium ? `Premium until ${data.premiumExpiry.toDate().toLocaleDateString()}` : 'Free user';
+  premiumStatus.textContent = isPremium
+    ? `Premium until ${data.premiumExpiry.toDate().toLocaleDateString()}`
+    : 'Free user';
   renderFavorites();
-  // Prompt username if not set
   if (!data.username) showUsernameModal();
-  // Refresh home to reflect recently viewed
-  buildHomeRows();
+  buildHomeRows(); // refresh home to reflect user state
 }
 
 // ====================== Login / Logout ======================
 loginBtn.addEventListener('click', () => {
-  auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
+  auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(err => alert('Login failed: ' + err.message));
 });
 logoutBtn.addEventListener('click', () => auth.signOut());
 
@@ -142,17 +194,15 @@ setUsernameBtn.addEventListener('click', async () => {
     usernameError.textContent = 'At least 3 characters.';
     return;
   }
-  // Check uniqueness
   const usernameDoc = await db.collection('usernames').doc(name).get();
   if (usernameDoc.exists) {
     usernameError.textContent = 'Username taken.';
     return;
   }
-  // Create username doc and update user
   await db.collection('usernames').doc(name).set({ uid: currentUser.uid });
   await userDoc.update({ username: name });
   usernameModal.classList.remove('active');
-  loadUserData();
+  await loadUserData();
 });
 
 // ====================== Theme & Kids Mode ======================
@@ -168,14 +218,14 @@ themeToggle.addEventListener('click', () => {
   if (userDoc) userDoc.update({ theme: newTheme });
 });
 darkThemeToggle.addEventListener('change', () => {
-  applyTheme(darkThemeToggle.checked ? 'dark' : 'light');
-  if (userDoc) userDoc.update({ theme: darkThemeToggle.checked ? 'dark' : 'light' });
+  const newTheme = darkThemeToggle.checked ? 'dark' : 'light';
+  applyTheme(newTheme);
+  if (userDoc) userDoc.update({ theme: newTheme });
 });
 
 function applyKidsMode(enabled) {
   kidsMode = enabled;
   if (kidsModeToggle) kidsModeToggle.checked = enabled;
-  // Re-render home and search if active
   if (homeView.classList.contains('active')) buildHomeRows();
   if (searchView.classList.contains('active')) applyFilters();
 }
@@ -201,24 +251,30 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
 
 // ====================== Channel Loading ======================
 async function fetchPlaylistText() {
-  try { const r = await fetch(PLAYLIST_URL); if (r.ok) return await r.text(); } catch(e){}
+  try {
+    const r = await fetch(PLAYLIST_URL);
+    if (r.ok) return await r.text();
+  } catch (e) {}
   for (const proxy of PROXY_URLS) {
-    try { const r = await fetch(proxy + encodeURIComponent(PLAYLIST_URL)); if (r.ok) return await r.text(); } catch(e){}
+    try {
+      const r = await fetch(proxy + encodeURIComponent(PLAYLIST_URL));
+      if (r.ok) return await r.text();
+    } catch (e) {}
   }
   throw new Error('Failed to load playlist.');
 }
-function parseM3U(text) { /* same as before – returns array of channel objects with url, displayName, tvgLogo, groupTitle, language */ }
-// (Keep the parseM3U function from previous complete script – included fully in the full file for brevity)
+
 async function loadChannels() {
   try {
-    $('statusText').textContent = 'Loading channels…';
+    statusTextEl.textContent = 'Loading channels…';
     const text = await fetchPlaylistText();
     allChannels = parseM3U(text);
-    $('statusText').textContent = `${allChannels.length} channels ready`;
+    statusTextEl.textContent = `${allChannels.length} channels ready`;
     setupSearchFilters();
     buildHomeRows();
   } catch (e) {
-    $('statusText').textContent = 'Error: ' + e.message;
+    statusTextEl.textContent = 'Error: ' + e.message;
+    allChannels = [];
   }
 }
 
@@ -226,7 +282,7 @@ async function loadChannels() {
 function createChannelCard(channel) {
   const card = document.createElement('div');
   card.className = 'channel-card glass';
-  const isFav = userDoc ? (currentUser.favorites || []).includes(channel.url) : false;
+  const isFav = false; // updated later via async if user logged in
   card.innerHTML = `
     <div class="live-badge">LIVE</div>
     <div class="viewer-count">${Math.floor(Math.random()*800)+10}K</div>
@@ -243,11 +299,23 @@ function createChannelCard(channel) {
     e.stopPropagation();
     toggleFavorite(channel);
   });
+  // Update heart if user is logged in (async)
+  if (userDoc) {
+    userDoc.get().then(snap => {
+      const favs = snap.data().favorites || [];
+      if (favs.includes(channel.url)) {
+        card.querySelector('.fav-btn').classList.add('liked');
+      }
+    });
+  }
   return card;
 }
 
 async function toggleFavorite(channel) {
-  if (!userDoc) return; // must be logged in
+  if (!userDoc) {
+    alert('Please login to save favorites.');
+    return;
+  }
   const snap = await userDoc.get();
   const favs = snap.data().favorites || [];
   const url = channel.url;
@@ -255,24 +323,37 @@ async function toggleFavorite(channel) {
   if (index > -1) favs.splice(index, 1);
   else favs.push(url);
   await userDoc.update({ favorites: favs });
-  // Update UI
-  if (profileView.classList.contains('active')) renderFavorites();
-  // update card heart
+  // Update only cards with this URL
   document.querySelectorAll('.channel-card').forEach(card => {
     if (card.querySelector('.card-name')?.textContent === channel.displayName) {
-      const btn = card.querySelector('.fav-btn');
-      btn.classList.toggle('liked', favs.includes(url));
+      card.querySelector('.fav-btn').classList.toggle('liked', favs.includes(url));
     }
   });
+  if (profileView.classList.contains('active')) renderFavorites();
 }
 
+function getChannelsByCategory(cat, src = allChannels) {
+  const keys = (CATEGORY_MAP[cat] || [cat.toLowerCase()]);
+  return src.filter(ch => {
+    const g = (ch.groupTitle || '').toLowerCase();
+    return keys.some(k => g.includes(k));
+  });
+}
+const CATEGORY_MAP = {
+  'Sports': ['sports','sport'],
+  'Movies': ['movies','movie','film'],
+  'Kids': ['kids','child','cartoon'],
+  'Music': ['music','musical'],
+  'News': ['news','information'],
+  'Documentary': ['documentary','docu'],
+  'Religion': ['religion','religious','faith'],
+};
+
 function buildHomeRows() {
-  // Recently viewed
   renderRecentlyViewed();
-  // Categories
   featuredCategories.innerHTML = '';
-  const cats = ['News','Sports','Movies','Music','Kids','Documentary','Religion'];
-  if (kidsMode) { cats.length = 0; cats.push('Kids'); } // only kids if kids mode on
+  let cats = ['News','Sports','Movies','Music','Kids','Documentary','Religion'];
+  if (kidsMode) cats = ['Kids'];
   cats.forEach(cat => {
     const chs = getChannelsByCategory(cat);
     if (!chs.length) return;
@@ -293,19 +374,23 @@ async function renderRecentlyViewed() {
   const snap = await userDoc.get();
   const recent = snap.data().recentlyViewed || [];
   if (recent.length === 0) return;
-  recentRow.innerHTML = '<div class="category-section"><div class="category-header"><i class="fas fa-history"></i> Recently Viewed</div><div class="scroll-row" id="recentScroller"></div></div>';
-  const scroller = $('recentScroller');
+  recentRow.innerHTML = `<div class="category-section"><div class="category-header"><i class="fas fa-history"></i> Recently Viewed</div><div class="scroll-row" id="recentScroller"></div></div>`;
+  const scroller = document.getElementById('recentScroller');
+  if (!scroller) return;
   recent.forEach(ch => scroller.appendChild(createChannelCard(ch)));
 }
 
-// Add to recently viewed when playing
 async function addToRecentlyViewed(channel) {
   if (!userDoc) return;
   const snap = await userDoc.get();
   let recent = snap.data().recentlyViewed || [];
-  // Remove if exists, add to front, limit 20
   recent = recent.filter(r => r.url !== channel.url);
-  recent.unshift({ url: channel.url, displayName: channel.displayName, tvgLogo: channel.tvgLogo, groupTitle: channel.groupTitle });
+  recent.unshift({
+    url: channel.url,
+    displayName: channel.displayName,
+    tvgLogo: channel.tvgLogo,
+    groupTitle: channel.groupTitle,
+  });
   if (recent.length > 20) recent.length = 20;
   await userDoc.update({ recentlyViewed: recent });
   if (homeView.classList.contains('active')) renderRecentlyViewed();
@@ -326,10 +411,20 @@ function playChannel(channel) {
       qualitySetup();
       startLimitTimer();
     });
-    hls.on(Hls.Events.ERROR, (e,d) => { /* same error handling */ });
+    hls.on(Hls.Events.ERROR, (event, data) => {
+      if (data.fatal) {
+        switch (data.type) {
+          case Hls.ErrorTypes.NETWORK_ERROR: hls.startLoad(); break;
+          case Hls.ErrorTypes.MEDIA_ERROR: hls.recoverMediaError(); break;
+          default: hls.destroy(); break;
+        }
+      }
+    });
   } else if (videoPlayer.canPlayType('application/vnd.apple.mpegurl')) {
     videoPlayer.src = channel.url;
     videoPlayer.play();
+  } else {
+    alert('HLS playback not supported.');
   }
   addToRecentlyViewed(channel);
   bindPlayerControls();
@@ -338,32 +433,81 @@ function playChannel(channel) {
 function startLimitTimer() {
   clearTimeout(limitTimer);
   const isKids = (currentChannel.groupTitle || '').toLowerCase().includes('kids');
-  if (isKids || isAdmin) return; // no limit
-  if (isPremium && userDoc) {
-    // premium user, no limit
-    return;
-  }
-  // free user / guest – 3 minutes
-  limitStart = Date.now();
+  if (isKids || isAdmin) return;
+  if (isPremium) return;
   limitTimer = setTimeout(() => {
     videoPlayer.pause();
     playerModal.classList.remove('active');
     limitModal.classList.add('active');
   }, 180000); // 3 minutes
 }
-function stopLimitTimer() {
-  clearTimeout(limitTimer);
-}
 closeLimitBtn.addEventListener('click', () => limitModal.classList.remove('active'));
 
-function qualitySetup() { /* same */ }
+function qualitySetup() {
+  if (!hls || !hls.levels.length) { qualityBtn.style.display = 'none'; return; }
+  qualityBtn.style.display = 'inline-block';
+  qualityBtn.textContent = 'Auto';
+  currentQualityIndex = -1;
+  qualityBtn.onclick = () => {
+    if (currentQualityIndex === -1) {
+      const hd = hls.levels.length - 1;
+      hls.currentLevel = hd;
+      currentQualityIndex = hd;
+      qualityBtn.textContent = 'HD';
+    } else if (currentQualityIndex === hls.levels.length - 1) {
+      hls.currentLevel = 0;
+      currentQualityIndex = 0;
+      qualityBtn.textContent = 'SD';
+    } else {
+      hls.currentLevel = -1;
+      currentQualityIndex = -1;
+      qualityBtn.textContent = 'Auto';
+    }
+  };
+}
 function closePlayer() {
   playerModal.classList.remove('active');
   if (hls) { hls.destroy(); hls = null; }
-  stopLimitTimer();
+  clearTimeout(limitTimer);
+  videoPlayer.pause();
+  videoPlayer.removeAttribute('src');
+  videoPlayer.load();
 }
 closePlayerBtn.addEventListener('click', closePlayer);
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closePlayer(); });
+
+function bindPlayerControls() {
+  playPauseBtn.onclick = () => videoPlayer.paused ? videoPlayer.play() : videoPlayer.pause();
+  videoPlayer.onplay = () => playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
+  videoPlayer.onpause = () => playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
+  videoPlayer.ontimeupdate = () => {
+    const pct = (videoPlayer.currentTime / videoPlayer.duration) * 100 || 0;
+    progressFill.style.width = pct + '%';
+    progressThumb.style.left = pct + '%';
+    currentTimeSpan.textContent = formatTime(videoPlayer.currentTime);
+  };
+  videoPlayer.ondurationchange = () => { durationSpan.textContent = formatTime(videoPlayer.duration); };
+  progressBar.addEventListener('click', (e) => {
+    const rect = progressBar.getBoundingClientRect();
+    const ratio = (e.clientX - rect.left) / rect.width;
+    videoPlayer.currentTime = ratio * videoPlayer.duration;
+  });
+  volumeSlider.oninput = () => videoPlayer.volume = volumeSlider.value;
+  fullscreenBtn.onclick = () => {
+    if (!document.fullscreenElement) {
+      if (videoPlayer.requestFullscreen) videoPlayer.requestFullscreen();
+      else if (videoPlayer.webkitRequestFullscreen) videoPlayer.webkitRequestFullscreen();
+      if (screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(() => {});
+    } else {
+      document.exitFullscreen();
+    }
+  };
+}
+function formatTime(sec) {
+  if (isNaN(sec)) return '0:00';
+  const m = Math.floor(sec / 60), s = Math.floor(sec % 60).toString().padStart(2, '0');
+  return `${m}:${s}`;
+}
 
 // ====================== Profile & Admin ======================
 async function updateProfile() {
@@ -378,14 +522,15 @@ async function updateProfile() {
   premiumStatus.textContent = prem ? `Premium until ${data.premiumExpiry.toDate().toLocaleDateString()}` : 'Free user';
   renderFavorites();
 }
-
 async function renderFavorites() {
-  favList.innerHTML = 'No favorites yet.';
+  favList.innerHTML = '';
   if (!userDoc) return;
   const data = (await userDoc.get()).data();
   const favs = data.favorites || [];
-  if (favs.length === 0) { favList.innerHTML = 'No favorites yet.'; return; }
-  favList.innerHTML = '';
+  if (favs.length === 0) {
+    favList.innerHTML = 'No favorites yet.';
+    return;
+  }
   favs.forEach(url => {
     const ch = allChannels.find(c => c.url === url);
     if (ch) {
@@ -398,64 +543,9 @@ async function renderFavorites() {
   });
 }
 
-// Admin user management
+// Admin
 $('adminUsersBtn').addEventListener('click', async () => {
   adminModal.classList.add('active');
   const usersSnap = await db.collection('users').get();
   userListDiv.innerHTML = '';
-  usersSnap.forEach(doc => {
-    const data = doc.data();
-    const uid = doc.id;
-    const div = document.createElement('div');
-    div.className = 'user-item';
-    div.innerHTML = `
-      <div>
-        <strong>${data.username || data.email}</strong><br>
-        <small>${data.email}</small><br>
-        Premium: ${data.isPremium ? (data.premiumExpiry?.toDate().toLocaleDateString() || 'No expiry') : 'No'}
-      </div>
-      <div>
-        <button class="pill" data-uid="${uid}" data-action="togglePremium">Toggle Premium</button>
-        <button class="pill" data-uid="${uid}" data-action="viewFavorites">Favorites</button>
-      </div>
-    `;
-    div.querySelector('[data-action="togglePremium"]').addEventListener('click', () => {
-      const uid = event.target.dataset.uid;
-      openPremiumDialog(uid);
-    });
-    div.querySelector('[data-action="viewFavorites"]').addEventListener('click', async (e) => {
-      const uid = e.target.dataset.uid;
-      const u = await db.collection('users').doc(uid).get();
-      const favs = u.data().favorites || [];
-      alert(`Favorites (${favs.length}):\n${favs.join('\n')}`);
-    });
-    userListDiv.appendChild(div);
-  });
-});
-closeAdminBtn.addEventListener('click', () => adminModal.classList.remove('active'));
-
-async function openPremiumDialog(uid) {
-  const duration = prompt('Enter duration: 1week, 1month, 1year');
-  if (!duration) return;
-  let days = 0;
-  if (duration.toLowerCase() === '1week') days = 7;
-  else if (duration.toLowerCase() === '1month') days = 30;
-  else if (duration.toLowerCase() === '1year') days = 365;
-  else { alert('Invalid'); return; }
-  const expiry = new Date(Date.now() + days * 86400000);
-  await db.collection('users').doc(uid).update({
-    isPremium: true,
-    premiumExpiry: firebase.firestore.Timestamp.fromDate(expiry)
-  });
-  alert(`Premium granted until ${expiry.toLocaleDateString()}`);
-  // Refresh list
-  $('adminUsersBtn').click();
-}
-
-// ====================== Search Filters ======================
-function setupSearchFilters() { /* same, but with kidsMode filter */ }
-function getChannelsByCategory(cat) { /* same */ }
-// ... (include full functions from previous script, adding kidsMode filtering)
-
-// ====================== Init ======================
-loadChannels();
+  usersSnap.forEach(doc =
