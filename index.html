@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+  <title>Stream TV</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+  <div class="bg-gradient"></div>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="header-left">
+      <img src="logo.png" alt="Stream TV" class="logo-img">
+      <span class="site-name">Stream TV</span>
+    </div>
+    <div class="header-right">
+      <button id="loginBtn" class="icon-btn" title="Login with Google"><i class="fab fa-google"></i></button>
+      <button id="logoutBtn" class="icon-btn" title="Logout" style="display:none;"><i class="fas fa-sign-out-alt"></i></button>
+      <span id="userDisplay" class="user-info"></span>
+      <button id="themeToggle" class="icon-btn" title="Switch theme"><i class="fas fa-moon"></i></button>
+      <button class="icon-btn" onclick="window.open('https://wa.link/s8bcwl','_blank')"><i class="fab fa-whatsapp"></i></button>
+      <button class="icon-btn" onclick="window.open('https://t.me/blackeye47','_blank')"><i class="fab fa-telegram"></i></button>
+    </div>
+  </header>
+
+  <!-- Navigation -->
+  <nav class="main-nav">
+    <button class="nav-btn active" data-view="home"><i class="fas fa-home"></i><span>Home</span></button>
+    <button class="nav-btn" data-view="search"><i class="fas fa-search"></i><span>Search</span></button>
+    <button class="nav-btn" data-view="profile"><i class="fas fa-user"></i><span>Profile</span></button>
+  </nav>
+
+  <div id="statusBanner" class="status-banner">
+    <span id="statusText">Loading channels…</span>
+  </div>
+
+  <main class="content-area">
+    <!-- Home View -->
+    <section class="view active" id="homeView">
+      <div id="recentRow"></div>
+      <div id="featuredCategories"></div>
+    </section>
+
+    <!-- Search View -->
+    <section class="view" id="searchView">
+      <div class="search-header">
+        <input type="text" id="searchBox" placeholder="Search channels..." class="search-input">
+        <div class="filter-groups">
+          <div class="filter-group">
+            <label>Category</label>
+            <div class="pills" id="categoryPills"></div>
+          </div>
+          <div class="filter-group">
+            <label>Language</label>
+            <div class="pills" id="languagePills"></div>
+          </div>
+        </div>
+      </div>
+      <div class="grid-container" id="channelGrid"></div>
+      <div class="pagination" id="pagination"></div>
+    </section>
+
+    <!-- Profile View -->
+    <section class="view" id="profileView">
+      <div class="profile-card glass">
+        <img src="logo.png" alt="User" class="profile-avatar">
+        <h2 id="profileName">Stream Viewer</h2>
+        <p id="profileEmail"></p>
+        <p id="premiumStatus" class="premium-badge"></p>
+        <div class="favorites-section">
+          <h3><i class="fas fa-heart"></i> Favorite Channels</h3>
+          <div id="favList" class="fav-list">No favorites yet.</div>
+        </div>
+        <div class="settings-section">
+          <h3>Settings</h3>
+          <label class="setting-row">
+            <span>Dark Theme</span>
+            <input type="checkbox" id="darkThemeToggle" checked>
+          </label>
+          <label class="setting-row">
+            <span>Kids Mode (only Kids channels)</span>
+            <input type="checkbox" id="kidsModeToggle">
+          </label>
+        </div>
+        <div id="adminPanel" style="display:none;">
+          <hr>
+          <h3>Admin Panel</h3>
+          <button id="adminUsersBtn" class="scan-btn">Manage Users</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Username prompt modal -->
+  <div class="modal" id="usernameModal">
+    <div class="modal-card glass">
+      <h3>Choose your username</h3>
+      <input type="text" id="usernameInput" placeholder="unique username">
+      <button id="setUsernameBtn" class="scan-btn">Save</button>
+      <p id="usernameError" class="error-msg"></p>
+    </div>
+  </div>
+
+  <!-- Limit overlay -->
+  <div class="modal" id="limitModal">
+    <div class="modal-card glass">
+      <h2>Time's up!</h2>
+      <p>Free users can watch for 3 minutes. Upgrade to premium.</p>
+      <p>Contact us on WhatsApp.</p>
+      <button id="closeLimitBtn" class="scan-btn">OK</button>
+    </div>
+  </div>
+
+  <!-- Admin user management modal -->
+  <div class="modal" id="adminModal">
+    <div class="modal-card glass wide">
+      <h3>User Management</h3>
+      <div id="userList" class="user-list"></div>
+      <button id="closeAdminBtn" class="scan-btn">Close</button>
+    </div>
+  </div>
+
+  <!-- VLC Player Modal -->
+  <div class="modal" id="playerModal">
+    <div class="player-wrapper">
+      <div class="player-topbar">
+        <span id="channelTitle">Channel</span>
+        <div class="topbar-btns">
+          <button id="qualityBtn" class="ctrl-btn">HD</button>
+          <button id="closePlayerBtn" class="ctrl-btn"><i class="fas fa-times"></i></button>
+        </div>
+      </div>
+      <video id="videoPlayer" class="video-js" playsinline></video>
+      <div class="vlc-controls">
+        <div class="progress-bar" id="progressBar">
+          <div class="progress-fill" id="progressFill"></div>
+          <div class="progress-thumb" id="progressThumb"></div>
+        </div>
+        <div class="controls-row">
+          <button id="playPauseBtn" class="ctrl-btn"><i class="fas fa-play"></i></button>
+          <span id="currentTime">0:00</span> / <span id="duration">0:00</span>
+          <div class="spacer"></div>
+          <button id="volumeBtn" class="ctrl-btn"><i class="fas fa-volume-up"></i></button>
+          <input type="range" id="volumeSlider" class="vol-slider" min="0" max="1" step="0.05" value="1">
+          <button id="fullscreenBtn" class="ctrl-btn"><i class="fas fa-expand"></i></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase CDN (compat) -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <script src="script.js"></script>
+</body>
+</html>
